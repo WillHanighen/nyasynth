@@ -1,0 +1,44 @@
+name: Windows Build
+
+on:
+  push:
+    branches:
+      - canon
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  windows:
+    name: Bundle Nyasynth for Windows x86-64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: windows-x86_64-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: windows-x86_64-cargo-
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Bundle VST3 and CLAP
+        run: cargo xtask bundle nyasynth --release
+
+      - name: List bundled plugins
+        run: find target/bundled -print
+
+      - name: Upload Windows plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: nyasynth-windows-x86_64
+          path: target/bundled/
+          if-no-files-found: error
+          retention-days: 30
